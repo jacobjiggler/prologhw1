@@ -97,12 +97,18 @@ assert_item(on(_,B)) :-
 % Question idiom q:
 %   Which block is on top of X?
 %   What is on top of?
+%   What is block X sitting on?
+%   Which blocks are on the table?
 %
 :- op(500, xfx, 'is_on_top_of').
+:- op(500, xfx, 'is_sitting_on').
 
 % the question q
 q(_ is_on_top_of A) --> [which],[block],[is],[on],[top],[of],[A],end.
 q(_ is_on_top_of A) --> [what],[is],[on],[top],[of],[A],end.
+q(A is_sitting_on _) --> [what],[is],[block],[A],[sitting],[on],end.
+q(which_blocks_on_the_table) --> [which],[blocks],[are],[on],[the],[table],end.
+
    
 % How to answer q
 B is_on_top_of A :- location(A,[X,Y]),
@@ -112,6 +118,15 @@ B is_on_top_of A :- location(A,[X,Y]),
 
 answer(X is_on_top_of A) :- call(X is_on_top_of A),
                             say([X,is,on,top,of,A]).
+
+							
+A is_sitting_on B :- location(A,[X,Y]),
+                    Y1 is Y-1,
+                    location(B,[X,Y1]), !.
+A is_sitting_on 'Nothing' .
+
+answer(A is_sitting_on X) :- call(A is_sitting_on X),
+                            say([A,is,sitting,on,X]).
 
 say([X|R]) :- write(X), write(' '), say(R).
 say([]).
