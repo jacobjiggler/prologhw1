@@ -6,6 +6,7 @@
 %  I want <would like> X on Y, W on Z, ...
 %  I want <would like> you to put <place> ...
 %  Can <could> <would> you {please} put <place> X on Y, ...
+%  Put all of the blocks in a single pile.
 
 c(L) --> lead_in,arrange(L),end.
 
@@ -103,11 +104,12 @@ assert_item(on(_,B)) :-
 :- op(500, xfx, 'is_on_top_of').
 :- op(500, xfx, 'is_sitting_on').
 
+
 % the question q
 q(_ is_on_top_of A) --> [which],[block],[is],[on],[top],[of],[A],end.
 q(_ is_on_top_of A) --> [what],[is],[on],[top],[of],[A],end.
 q(A is_sitting_on _) --> [what],[is],[block],[A],[sitting],[on],end.
-q(which_blocks_on_the_table) --> [which],[blocks],[are],[on],[the],[table],end.
+q(which_blocks_are_on_the_table(L)) --> [which],[blocks],[are],[on],[the],[table],end.
 
    
 % How to answer q
@@ -127,6 +129,11 @@ A is_sitting_on 'Nothing' .
 
 answer(A is_sitting_on X) :- call(A is_sitting_on X),
                             say([A,is,sitting,on,X]).
+							
+which_blocks_are_on_the_table(L) :- findall(X, on(X, table), L). 
+
+answer(which_blocks_are_on_the_table(L)) :- call(which_blocks_are_on_the_table(L)),
+										say([L]).
 
 say([X|R]) :- write(X), write(' '), say(R).
 say([]).
