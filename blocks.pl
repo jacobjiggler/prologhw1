@@ -8,13 +8,15 @@
 %  Can <could> <would> you {please} put <place> X on Y, ...
 %  Put all of the blocks in a single pile.
 
-c(L) --> lead_in,arrange(L),end.
+c(L) --> lead_in ,arrange(L),end.
+arrange([H|T]) :- single_pile, end.
 
 end --> ['.'] | ['?'].
 
 lead_in --> please, place.
 lead_in --> [i], [want] | [i], [would], [like], you_to_put.
 lead_in --> ([can] | [could] | [would]), [you], please, place.
+
 
 you_to_put --> [] | [you], [to], place.   %%% partially optional
 
@@ -29,6 +31,7 @@ comma --> [','] | ['and'] | [','],[and].   %%% alternate words
 
 on(on(X,Y)) --> block, [X], ([on] | [onto] | [on],[top],[of]), block, [Y].
 on(on(X,table)) --> [X],([on] | [onto]), [the], [table].
+single_pile --> [all], [of], [the], [blocks], [in], [a], [single], [pile]. 
 
 block --> [] | [block].   %%% optional word
 
@@ -71,6 +74,48 @@ assert_item(on(A,B)) :-
     retract(location(A, [XA,YA])),
     assert_table_spot([XA,YA]), % Possibly free up spot on table.
     assert(location(A, [XB,YBN])),!.
+
+% Put all blocks that are in the list in a single pile
+place_all_in_list([], Y):-
+	fail.
+
+place_all_in_list([H|T], Y):-
+    assert(location(H,[0,Y])),
+	Y1 is Y + 1,
+	place_all_in_list(T, Y1).
+	
+% Move all blocks into a single pile.
+wrap_single_pile :-
+	findall(B, location(B, [_,_]), L),
+    retractall(location(X, Y)),
+	place_all_in_list(L, 0).
+	
+single_pile :-
+	not(wrap_single_pile).
+
+% Put the block on top of A on top of block B (or on the table)
+on_top_of(A,B) :-
+	B\== table,
+	not(on(X,B)),
+	on(Y,A),
+	not(on(Z,Y)),
+	assert_item(on(Y,B)).
+	
+
+on_top_of(A,table):-
+	on(Y,A),
+	not(on(Z,Y)),
+	assert_item(on(Y,table)).
+
+
+% Put the highest block on top of block Y (or on the table)
+highest(B, [X,Y]):-
+	location(B2, [XN,YN]),
+	B\== B2,
+	Y > YN.
+
+    
+
 % Handle errors.
 assert_item(on(A,table)) :- 
     location(A,[_,Y]), Y is 0,
