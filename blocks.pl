@@ -31,7 +31,8 @@ comma --> [','] | ['and'] | [','],[and].   %%% alternate words
 
 
 on(on(X,Y)) --> block, [X], ([on] | [onto] | [on],[top],[of]), block, [Y].
-on(on_result(Y)) --> [result], ([on] | [onto] | [on],[top],[of]), block, [Y].
+on(on_first_result(Y)) --> [result], ([on] | [onto] | [on],[top],[of]), block, [Y].
+on(on_last_result(X)) --> block, [X], ([on] | [onto] | [on],[top],[of]), [result].
 on(on(X,table)) --> [X],([on] | [onto]), [the], [table].
 on(on_result(table)) --> [result],([on] | [onto]), [the], [table].
 on(single_pile) --> [all], [of], [the], [blocks], [in], [a], [single], [pile]. 
@@ -87,6 +88,8 @@ assert_item(on_result(table)) :-
     retract(location(A,[X,Y])),
     assert(location(A,P)),!,
     nb_setval(result, A).
+	
+	
 % Move block A on block B.
 assert_item(on(A,B)) :- 
     B \== table,
@@ -101,7 +104,7 @@ assert_item(on(A,B)) :-
     assert(location(A, [XB,YBN])),!,
 	nb_setval(result, A).
 
-	assert_item(on_result(B)) :- 
+	assert_item(on_first_result(B)) :- 
 	nb_getval(result, A),
     B \== table,
     location(A, [XA,YA]),
@@ -114,6 +117,20 @@ assert_item(on(A,B)) :-
     assert_table_spot([XA,YA]), % Possibly free up spot on table.
     assert(location(A, [XB,YBN])),!,
 	nb_setval(result, A).
+	
+	assert_item(on_last_result(A)) :- 
+	nb_getval(result, B),
+    B \== table,
+    location(A, [XA,YA]),
+    YAN is YA + 1,
+    not(location(_, [XA,YAN])),
+    location(B, [XB,YB]),
+    YBN is YB + 1,
+    not(location(_, [XB,YBN])),
+    retract(location(A, [XA,YA])),
+    assert_table_spot([XA,YA]), % Possibly free up spot on table.
+    assert(location(A, [XB,YBN])),!,
+	nb_setval(result, B).
 	
 % Put all blocks that are in the list in a single pile
 place_all_in_list([], Y):-
@@ -200,8 +217,8 @@ assert_item(on(A,table)) :-
     write('Cannot move from, something is on top!'), nl, !, fail.
 assert_item(on(A,_)) :-
     not(location(A, _)),
-    write('Block to move does not exist!'), nl, !, fail.
-assert_item(on(_,B)) :-
+     !, fail.
+m(on(_,B)) :-
     B \== table, not(location(B, _)),
     write('Block to place on does not exist!'), nl, !, fail.
 assert_item(on(A,B)) :- 
