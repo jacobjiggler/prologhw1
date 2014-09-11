@@ -31,7 +31,9 @@ comma --> [','] | ['and'] | [','],[and].   %%% alternate words
 
 
 on(on(X,Y)) --> block, [X], ([on] | [onto] | [on],[top],[of]), block, [Y].
+on(on_result(Y)) --> [result], ([on] | [onto] | [on],[top],[of]), block, [Y].
 on(on(X,table)) --> [X],([on] | [onto]), [the], [table].
+on(on_result(table)) --> [result],([on] | [onto]), [the], [table].
 on(single_pile) --> [all], [of], [the], [blocks], [in], [a], [single], [pile]. 
 
 on(on_top_of(A,B)) --> [the], [block], [on], [top], [of], [B], [on], [top], [of], [block], [Y].
@@ -70,7 +72,21 @@ assert_item(on(A,table)) :-
     not(location(_,[X,YN])),
     retract(free_spot_on_table(P)), 
     retract(location(A,[X,Y])),
-    assert(location(A,P)),!.
+    assert(location(A,P)),!,
+    nb_setval(result, A).
+	
+	% Move block A on the table.
+assert_item(on_result(table)) :- 
+    nb_getval(result, A),
+    location(A,[X,Y]),
+    not(Y is 0),
+    free_spot_on_table(P), 
+    YN is Y + 1,
+    not(location(_,[X,YN])),
+    retract(free_spot_on_table(P)), 
+    retract(location(A,[X,Y])),
+    assert(location(A,P)),!,
+    nb_setval(result, A).
 % Move block A on block B.
 assert_item(on(A,B)) :- 
     B \== table,
@@ -82,8 +98,23 @@ assert_item(on(A,B)) :-
     not(location(_, [XB,YBN])),
     retract(location(A, [XA,YA])),
     assert_table_spot([XA,YA]), % Possibly free up spot on table.
-    assert(location(A, [XB,YBN])),!.
+    assert(location(A, [XB,YBN])),!,
+	nb_setval(result, A).
 
+	assert_item(on_result(B)) :- 
+	nb_getval(result, A),
+    B \== table,
+    location(A, [XA,YA]),
+    YAN is YA + 1,
+    not(location(_, [XA,YAN])),
+    location(B, [XB,YB]),
+    YBN is YB + 1,
+    not(location(_, [XB,YBN])),
+    retract(location(A, [XA,YA])),
+    assert_table_spot([XA,YA]), % Possibly free up spot on table.
+    assert(location(A, [XB,YBN])),!,
+	nb_setval(result, A).
+	
 % Put all blocks that are in the list in a single pile
 place_all_in_list([], Y):-
 	fail.
@@ -108,13 +139,15 @@ assert_item(on_top_of(A,B)) :-
 	not(on(X,B)),
 	on(Y,A),
 	not(on(Z,Y)),
-	assert_item(on(Y,B)).
+	assert_item(on(Y,B)),
+	nb_setval(result, Y).
 	
 
 assert_item(on_top_of(A,table)):-
 	on(Y,A),
 	not(on(Z,Y)),
-	assert_item(on(Y,table)).
+	assert_item(on(Y,table)),
+	nb_setval(result, Y).
 
 
 % Put the highest block on top of block Y (or on the table)
@@ -143,12 +176,14 @@ assert_item(put_highest(B)):-
 	findall(C, location(C, [_,_]), L),
 	highest(L, X),
 	not(on(Z,B)),
-	assert_item(on(X,B)).
+	assert_item(on(X,B)),
+	nb_setval(result, X).
 
 assert_item(put_highest(table)):-
 	findall(C, location(C, [_,_]), L),
 	highest(L, X),
-	assert_item(on(X,table)).
+	assert_item(on(X,table)),
+	nb_setval(result, X).
 
 	
     
@@ -201,7 +236,8 @@ B is_on_top_of A :- location(A,[X,Y]),
 'Nothing' is_on_top_of _ .
 
 answer(X is_on_top_of A) :- call(X is_on_top_of A),
-                            say([X,is,on,top,of,A]).
+                            say([X,is,on,top,of,A]),
+							nb_setval(result, X).
 
 							
 A is_sitting_on B :- location(A,[X,Y]),
@@ -210,7 +246,8 @@ A is_sitting_on B :- location(A,[X,Y]),
 A is_sitting_on 'Nothing' .
 
 answer(A is_sitting_on X) :- call(A is_sitting_on X),
-                            say([A,is,sitting,on,X]).
+                            say([A,is,sitting,on,X]),
+							nb_setval(result, A).
 							
 which_blocks_are_on_the_table(L) :- findall(X, on(X, table), L). 
 
