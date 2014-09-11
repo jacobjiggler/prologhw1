@@ -9,7 +9,6 @@
 %  Put all of the blocks in a single pile.
 
 c(L) --> lead_in ,arrange(L),end.
-arrange([H|T]) :- single_pile, end.
 
 end --> ['.'] | ['?'].
 
@@ -27,13 +26,23 @@ place --> [put] | [place].   %%% alternate words
 arrange([ON]) --> on(ON).
 arrange([ON|R]) --> on(ON), comma, arrange(R).
 
+
 comma --> [','] | ['and'] | [','],[and].   %%% alternate words
+
 
 on(on(X,Y)) --> block, [X], ([on] | [onto] | [on],[top],[of]), block, [Y].
 on(on(X,table)) --> [X],([on] | [onto]), [the], [table].
-single_pile --> [all], [of], [the], [blocks], [in], [a], [single], [pile]. 
+on(single_pile) --> [all], [of], [the], [blocks], [in], [a], [single], [pile]. 
+
+on(on_top_of(A,B)) --> [the], [block], [on], [top], [of], [B], [on], [top], [of], [block], [Y].
+on(on_top_of(A,table)) --> [the], [block], [on], [top], [of], [A], [on], [top], [of], [the], [table].
+on(put_highest(B)) --> [the], [highest], [block], [on], [top], [of], [block], [B].
+on(put_highest(table)) --> [the], [highest], [block], [on], [top], [of], [table].
+
+
 
 block --> [] | [block].   %%% optional word
+the --> [] | [the].  %%% optional word
 
 :- [read_line].
 
@@ -90,11 +99,11 @@ wrap_single_pile :-
     retractall(location(X, Y)),
 	place_all_in_list(L, 0).
 	
-single_pile :-
+assert_item(single_pile) :-
 	not(wrap_single_pile).
 
 % Put the block on top of A on top of block B (or on the table)
-on_top_of(A,B) :-
+assert_item(on_top_of(A,B)) :-
 	B\== table,
 	not(on(X,B)),
 	on(Y,A),
@@ -102,18 +111,46 @@ on_top_of(A,B) :-
 	assert_item(on(Y,B)).
 	
 
-on_top_of(A,table):-
+assert_item(on_top_of(A,table)):-
 	on(Y,A),
 	not(on(Z,Y)),
 	assert_item(on(Y,table)).
 
 
 % Put the highest block on top of block Y (or on the table)
-highest(B, [X,Y]):-
-	location(B2, [XN,YN]),
-	B\== B2,
-	Y > YN.
+% highest(B, [X,Y]):-
+% 	location(B2, [XN,YN]),
+% 	B\== B2,
+% 	Y > YN.
 
+% highest([H|T], B):- 
+%	highest(T,B),
+%	location(B2, [XN,YN]),
+%	B\== B2,
+%	Y > YN,
+%	location(B, [_, Y]).
+
+highest([H|T],B):- highest(T,H,B).
+highest([],C,C).
+highest([H|T],C, B):-
+	location(C, [XA,YA]),
+	location(H, [XB,YB]),
+	B1 is max(YA, YB),
+	location(B2, [_,B1]),
+	highest(T, B2, B).
+
+assert_item(put_highest(B)):-
+	findall(C, location(C, [_,_]), L),
+	highest(L, X),
+	not(on(Z,B)),
+	assert_item(on(X,B)).
+
+assert_item(put_highest(table)):-
+	findall(C, location(C, [_,_]), L),
+	highest(L, X),
+	assert_item(on(X,table)).
+
+	
     
 
 % Handle errors.
