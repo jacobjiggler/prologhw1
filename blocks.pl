@@ -285,8 +285,8 @@ assert_item(on(_,B)) :-
 % the question q
 q(is_on_top_of_result(_, A)) --> [what],[is],[on],[top],[of],[result], end.
 q(is_on_top_of_result(_, A)) --> [which],[block],[is],[on],[top],[of],[result],end.
-q(_ is_on_top_of A) --> [which],[block],[is],[on],[top],[of],[A],end.
-q(_ is_on_top_of A) --> [what],[is],[on],[top],[of],[A],end.
+q(_ is_on_top_of A) --> [which],[block],[is],[on],[top],[of],[block],[A],end.
+q(_ is_on_top_of A) --> [what],[is],[on],[top],[of],[block], [A],end.
 
 q(A is_sitting_on _) --> [what],[is],[block],[A],[sitting],[on],end.
 q(result_is_sitting_on(A, _)) --> [what],[is],[result],[sitting],[on],end.
