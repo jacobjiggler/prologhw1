@@ -7,6 +7,8 @@
 %  I want <would like> you to put <place> ...
 %  Can <could> <would> you {please} put <place> X on Y, ...
 %  Put all of the blocks in a single pile.
+%  Put the block on top of A on top of B(table).
+%  Put the highest block on top of block B(table).
 
 c(L) --> lead_in ,arrange(L),end.
 
@@ -37,9 +39,17 @@ on(on(X,table)) --> [block], [X],([on] | [onto]), [the], [table].
 on(on_result(table)) --> [result],([on] | [onto]), [the], [table].
 on(single_pile) --> [all], [of], [the], [blocks], [in], [a], [single], [pile]. 
 
-on(on_top_of(A,B)) --> [the], [block], [on], [top], [of], [B], [on], [top], [of], [block], [Y].
+on(on_top_of(A,B)) --> [the], [block], [on], [top], [of], [A], [on], [top], [of], [block], [B].
+on(result_on_top_of(B)) --> [the], [block], [on], [top], [of], [result], [on], [top], [of], [block], [B].
+on(on_top_of_result(A)) --> [the], [block], [on], [top], [of], [A], [on], [top], [of], [block], [result].
+
+
 on(on_top_of(A,table)) --> [the], [block], [on], [top], [of], [A], [on], [top], [of], [the], [table].
+on(result_on_top_of(table)) --> [the], [block], [on], [top], [of], [result], [on], [top], [of], [the], [table].
+
 on(put_highest(B)) --> [the], [highest], [block], [on], [top], [of], [block], [B].
+on(put_highest_result) --> [the], [highest], [block], [on], [top], [of], [result].
+
 on(put_highest(table)) --> [the], [highest], [block], [on], [top], [of], [table].
 
 
@@ -104,7 +114,7 @@ assert_item(on(A,B)) :-
     assert(location(A, [XB,YBN])),!,
 	nb_setval(result, A).
 
-	assert_item(on_first_result(B)) :- 
+assert_item(on_first_result(B)) :- 
 	nb_getval(result, A),
     B \== table,
     location(A, [XA,YA]),
@@ -118,7 +128,7 @@ assert_item(on(A,B)) :-
     assert(location(A, [XB,YBN])),!,
 	nb_setval(result, A).
 	
-	assert_item(on_last_result(A)) :- 
+assert_item(on_last_result(A)) :- 
 	nb_getval(result, B),
     B \== table,
     location(A, [XA,YA]),
@@ -158,9 +168,34 @@ assert_item(on_top_of(A,B)) :-
 	not(on(Z,Y)),
 	assert_item(on(Y,B)),
 	nb_setval(result, Y).
+
+assert_item(result_on_top_of(B)) :-
+	nb_getval(result, A),
+	B\== table,
+	not(on(X,B)),
+	on(Y,A),
+	not(on(Z,Y)),
+	assert_item(on(Y,B)),
+	nb_setval(result, Y).
+
+assert_item(on_top_of_result(A)) :-
+	nb_getval(result, B),
+	B\== table,
+	not(on(X,B)),
+	on(Y,A),
+	not(on(Z,Y)),
+	assert_item(on(Y,B)),
+	nb_setval(result, Y).
 	
 
 assert_item(on_top_of(A,table)):-
+	on(Y,A),
+	not(on(Z,Y)),
+	assert_item(on(Y,table)),
+	nb_setval(result, Y).
+
+assert_item(result_on_top_of(table)):-
+    nb_getval(result, A),
 	on(Y,A),
 	not(on(Z,Y)),
 	assert_item(on(Y,table)),
@@ -190,6 +225,14 @@ highest([H|T],C, B):-
 	highest(T, B2, B).
 
 assert_item(put_highest(B)):-
+	findall(C, location(C, [_,_]), L),
+	highest(L, X),
+	not(on(Z,B)),
+	assert_item(on(X,B)),
+	nb_setval(result, X).
+
+assert_item(put_highest_result):-
+	nb_getval(result, B),
 	findall(C, location(C, [_,_]), L),
 	highest(L, X),
 	not(on(Z,B)),
@@ -240,9 +283,13 @@ assert_item(on(_,B)) :-
 
 
 % the question q
+q(is_on_top_of_result(_, A)) --> [what],[is],[on],[top],[of],[result], end.
+q(is_on_top_of_result(_, A)) --> [which],[block],[is],[on],[top],[of],[result],end.
 q(_ is_on_top_of A) --> [which],[block],[is],[on],[top],[of],[A],end.
 q(_ is_on_top_of A) --> [what],[is],[on],[top],[of],[A],end.
+
 q(A is_sitting_on _) --> [what],[is],[block],[A],[sitting],[on],end.
+q(result_is_sitting_on(A, _)) --> [what],[is],[result],[sitting],[on],end.
 q(which_blocks_are_on_the_table(L)) --> [which],[blocks],[are],[on],[the],[table],end.
 
    
@@ -264,10 +311,31 @@ A is_sitting_on 'Nothing' .
 
 answer(A is_sitting_on X) :- call(A is_sitting_on X),
                             say([A,is,sitting,on,X]),
-							nb_setval(result, A).
+							nb_setval(result, X).
 							
-which_blocks_are_on_the_table(L) :- findall(X, on(X, table), L). 
+is_on_top_of_result(B,A) :- nb_getval(result, A),
+						location(A,[X,Y]),
+                        Y1 is Y+1,
+                        location(B,[X,Y1]), !.
+is_on_top_of_result('Nothing' ,A):- nb_getval(result, A).
 
+
+answer(is_on_top_of_result(B,A)) :- call(is_on_top_of_result(B,A)),
+								say([B,is,on,top,of,A]),
+								nb_setval(result, B),!.
+
+result_is_sitting_on(A, B):- nb_getval(result, A),
+							location(A,[X,Y]),
+							Y1 is Y-1,
+							location(B,[X,Y1]), !.
+result_is_sitting_on(A,'Nothing') :- nb_getval(result, A).
+						
+answer(result_is_sitting_on(A, B)) :- call(result_is_sitting_on(A, B)),
+                            say([A,is,sitting,on,B]),
+							nb_setval(result, B).	
+
+which_blocks_are_on_the_table(L) :- findall(X, on(X, table), L). 							
+		
 answer(which_blocks_are_on_the_table(L)) :- call(which_blocks_are_on_the_table(L)),
 										say([L]).
 
