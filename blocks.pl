@@ -32,8 +32,8 @@ comma --> [','] | ['and'] | [','],[and].   %%% alternate words
 
 on(on(X,Y)) --> block, [X], ([on] | [onto] | [on],[top],[of]), block, [Y].
 on(on_first_result(Y)) --> [result], ([on] | [onto] | [on],[top],[of]), block, [Y].
-on(on_last_result(X)) --> block, [X], ([on] | [onto] | [on],[top],[of]), [result].
-on(on(X,table)) --> [X],([on] | [onto]), [the], [table].
+on(on_last_result(X)) --> [block], [X], ([on] | [onto] | [on],[top],[of]), [result].
+on(on(X,table)) --> [block], [X],([on] | [onto]), [the], [table].
 on(on_result(table)) --> [result],([on] | [onto]), [the], [table].
 on(single_pile) --> [all], [of], [the], [blocks], [in], [a], [single], [pile]. 
 
@@ -217,8 +217,8 @@ assert_item(on(A,table)) :-
     write('Cannot move from, something is on top!'), nl, !, fail.
 assert_item(on(A,_)) :-
     not(location(A, _)),
-     !, fail.
-m(on(_,B)) :-
+    write('Block to move does not exist!'), nl, !, fail.
+assert_item(on(_,B)) :-
     B \== table, not(location(B, _)),
     write('Block to place on does not exist!'), nl, !, fail.
 assert_item(on(A,B)) :- 
